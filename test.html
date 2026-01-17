@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人财务进度追踪工具</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-radius: 10px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark-color);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .mode-switch {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .mode-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+        
+        .mode-btn.active {
+            transform: scale(1.05);
+        }
+        
+        .debt-mode {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .saving-mode {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            font-size: 1.1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d1145a;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #2a9dc2;
+        }
+        
+        .progress-section {
+            grid-column: 1 / -1;
+        }
+        
+        .progress-bar-container {
+            height: 30px;
+            background-color: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .positive {
+            color: var(--success-color);
+        }
+        
+        .negative {
+            color: var(--warning-color);
+        }
+        
+        .history-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-btn {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-date {
+            font-weight: 600;
+            min-width: 100px;
+        }
+        
+        .history-description {
+            flex-grow: 1;
+            margin: 0 15px;
+        }
+        
+        .history-amount {
+            font-weight: 600;
+            min-width: 100px;
+            text-align: right;
+        }
+        
+        .income {
+            color: var(--success-color);
+        }
+        
+        .expense {
+            color: var(--warning-color);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6c757d;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .clear-data-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        footer {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .history-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .history-description {
+                margin: 10px 0;
+            }
+            
+            .history-amount {
+                text-align: left;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="app-title">个人债务清偿追踪工具</h1>
+            <p id="app-subtitle">记录每日收入，动态追踪偿清债务进度</p>
+            <div class="mode-switch">
+                <button id="debt-mode-btn" class="mode-btn debt-mode active">偿债模式</button>
+                <button id="saving-mode-btn" class="mode-btn saving-mode">储蓄模式</button>
+            </div>
+        </header>
+        
+        <main class="progress-section">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-chart-line"></i> 进度概览</h2>
+                <div class="progress-text">
+                    <span id="progress-label">已偿还: <span id="progress-amount">¥0</span> / <span id="total-amount">¥0</span></span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">剩余债务/目标</div>
+                        <div id="remaining-amount" class="stat-value">¥0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">预计完成日期</div>
+                        <div id="estimated-date" class="stat-value">未设置</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">提前/延后天数</div>
+                        <div id="days-difference" class="stat-value">0天</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">7日平均净收入</div>
+                        <div id="avg-net-income" class="stat-value">¥0</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <div class="left-column">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-sliders-h"></i> 初始设置</h2>
+                <div id="setup-alert" class="alert alert-warning">
+                    请先完成初始设置以开始使用
+                </div>
+                <form id="setup-form">
+                    <div class="form-group">
+                        <label for="total-amount-input">总债务/总目标金额 (¥)</label>
+                        <input type="number" id="total-amount-input" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="target-date">预期完成日期</label>
+                        <input type="date" id="target-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="monthly-expense">每月必要支出 (¥)</label>
+                        <input type="number" id="monthly-expense" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="daily-income">每日预计收入 (¥)</label>
+                        <input type="number" id="daily-income" min="0" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存设置</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-edit"></i> 日常记录</h2>
+                <div id="record-alert" class="alert alert-warning" style="display: none;">
+                    请先完成初始设置
+                </div>
+                <div class="form-group">
+                    <label for="today-income">今日收入 (¥)</label>
+                    <input type="number" id="today-income" min="0" step="0.01">
+                    <button id="record-today-income" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+                        <i class="fas fa-calendar-day"></i> 记录今日收入
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="extra-income-amount">额外收入 (¥)</label>
+                    <input type="number" id="extra-income-amount" min="0" step="0.01">
+                    <input type="text" id="extra-income-description" placeholder="描述 (如: 奖金, 兼职等)" style="margin-top: 5px;">
+                    <button id="record-extra-income" class="btn btn-success" style="margin-top: 10px; width: 100%;">
+                        <i class="fas fa-plus-circle"></i> 记录额外收入
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="extra-expense-amount">额外支出 (¥)</label>
+                    <input type="number" id="extra-expense-amount" min="0" step="0.01">
+                    <input type="text" id="extra-expense-description" placeholder="描述 (如: 购物, 餐饮等)" style="margin-top: 5px;">
+                    <button id="record-extra-expense" class="btn btn-danger" style="margin-top: 10px; width: 100%;">
+                        <i class="fas fa-minus-circle"></i> 记录额外支出
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-column">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-history"></i> 历史记录</h2>
+                <div class="history-filters">
+                    <button class="filter-btn active" data-period="day">日视图</button>
+                    <button class="filter-btn" data-period="week">周视图</button>
+                    <button class="filter-btn" data-period="month">月视图</button>
+                </div>
+                <div id="history-list" class="history-list">
+                    <!-- 历史记录将通过JavaScript动态添加 -->
+                    <div class="history-item empty-history">
+                        <div class="history-description" style="text-align: center; width: 100%;">
+                            暂无记录，请开始记录您的财务数据
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-database"></i> 数据管理</h2>
+                <p style="margin-bottom: 15px;">所有数据存储在您的浏览器本地，不会上传到服务器。</p>
+                <div class="clear-data-section">
+                    <button id="clear-data-btn" class="btn btn-danger" style="width: 100%;">
+                        <i class="fas fa-trash-alt"></i> 清除所有数据
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>个人财务进度追踪工具 &copy; 2023 | 纯前端单页应用 | 数据存储在浏览器本地</p>
+            <p style="font-size: 0.8rem; margin-top: 5px;">提示: 如需在不同设备间同步数据，请考虑导出/导入数据功能(后续版本添加)</p>
+        </footer>
+    </div>
+    
+    <!-- 确认清除数据模态框 -->
+    <div id="clear-data-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-exclamation-triangle"></i> 确认清除数据</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px;">您确定要清除所有数据吗？此操作不可撤销，所有设置和记录都将被永久删除。</p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="cancel-clear-btn" class="btn">取消</button>
+                <button id="confirm-clear-btn" class="btn btn-danger">确认清除</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 记录重复确认模态框 -->
+    <div id="overwrite-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-exclamation-circle"></i> 确认覆盖记录</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px;" id="overwrite-message">今天已经有一条收入记录，是否要覆盖它？</p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="cancel-overwrite-btn" class="btn">取消</button>
+                <button id="confirm-overwrite-btn" class="btn btn-primary">确认覆盖</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模块化代码结构 - 主要模块
+        // 1. 数据存储模块 (DataManager)
+        // 2. 计算逻辑模块 (Calculator)
+        // 3. UI管理模块 (UIManager)
+        // 4. 主应用模块 (FinanceTrackerApp)
+
+        // 数据存储模块 - 负责LocalStorage操作
+        const DataManager = {
+            STORAGE_KEYS: {
+                SETTINGS: 'finance_tracker_settings',
+                RECORDS: 'finance_tracker_records',
+                MODE: 'finance_tracker_mode'
+            },
+
+            // 保存设置
+            saveSettings(settings) {
+                localStorage.setItem(this.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+            },
+
+            // 获取设置
+            getSettings() {
+                const settings = localStorage.getItem(this.STORAGE_KEYS.SETTINGS);
+                return settings ? JSON.parse(settings) : null;
+            },
+
+            // 保存记录
+            saveRecords(records) {
+                localStorage.setItem(this.STORAGE_KEYS.RECORDS, JSON.stringify(records));
+            },
+
+            // 获取记录
+            getRecords() {
+                const records = localStorage.getItem(this.STORAGE_KEYS.RECORDS);
+                return records ? JSON.parse(records) : {};
+            },
+
+            // 保存模式
+            saveMode(mode) {
+                localStorage.setItem(this.STORAGE_KEYS.MODE, mode);
+            },
+
+            // 获取模式
+            getMode() {
+                return localStorage.getItem(this.STORAGE_KEYS.MODE) || 'debt';
+            },
+
+            // 清除所有数据
+            clearAllData() {
+                localStorage.removeItem(this.STORAGE_KEYS.SETTINGS);
+                localStorage.removeItem(this.STORAGE_KEYS.RECORDS);
+                localStorage.removeItem(this.STORAGE_KEYS.MODE);
+            },
+
+            // 检查是否有数据
+            hasData() {
+                return this.getSettings() !== null;
+            }
+        };
+
+        // 计算逻辑模块 - 负责所有财务计算
+        const Calculator = {
+            // 计算每日分摊的必要支出
+            calculateDailyExpense(monthlyExpense, date) {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                return monthlyExpense / daysInMonth;
+            },
+
+            // 计算特定日期的净收入
+            calculateDailyNetIncome(dailyRecord, dailyExpense) {
+                let netIncome = 0;
+                
+                if (dailyRecord.dailyIncome) {
+                    netIncome += dailyRecord.dailyIncome;
+                }
+                
+                if (dailyRecord.extraIncomes) {
+                    dailyRecord.extraIncomes.forEach(income => {
+                        netIncome += income.amount;
+                    });
+                }
+                
+                if (dailyRecord.extraExpenses) {
+                    dailyRecord.extraExpenses.forEach(expense => {
+                        netIncome -= expense.amount;
+                    });
+                }
+                
+                // 减去当日分摊的必要支出
+                netIncome -= dailyExpense;
+                
+                return netIncome;
+            },
+
+            // 计算最近N天的平均净收入
+            calculateAverageNetIncome(records, settings, days = 7) {
+                const today = new Date();
+                const pastDate = new Date();
+                pastDate.setDate(today.getDate() - days);
+                
+                let totalNetIncome = 0;
+                let daysWithRecords = 0;
+                
+                // 遍历最近N天
+                for (let d = new Date(pastDate); d <= today; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    
+                    if (records[dateStr]) {
+                        const dailyExpense = this.calculateDailyExpense(settings.monthlyExpense, d);
+                        totalNetIncome += this.calculateDailyNetIncome(records[dateStr], dailyExpense);
+                        daysWithRecords++;
+                    }
+                }
+                
+                // 如果有记录的天数少于指定天数，使用实际天数计算平均值
+                const effectiveDays = daysWithRecords > 0 ? daysWithRecords : 1;
+                return daysWithRecords > 0 ? totalNetIncome / effectiveDays : settings.dailyIncome - (settings.monthlyExpense / 30); // 默认使用预计日收入
+            },
+
+            // 计算累计净收入
+            calculateTotalNetIncome(records, settings) {
+                let total = 0;
+                
+                Object.keys(records).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const dailyExpense = this.calculateDailyExpense(settings.monthlyExpense, date);
+                    const dailyNetIncome = this.calculateDailyNetIncome(records[dateStr], dailyExpense);
+                    total += dailyNetIncome;
+                });
+                
+                return total;
+            },
+
+            // 计算剩余金额
+            calculateRemainingAmount(totalAmount, totalNetIncome, mode) {
+                const remaining = mode === 'debt' 
+                    ? totalAmount - totalNetIncome 
+                    : totalAmount - totalNetIncome;
+                
+                // 对于储蓄模式，如果已经超过目标，剩余金额为0
+                return mode === 'saving' && remaining < 0 ? 0 : Math.max(remaining, 0);
+            },
+
+            // 计算预计完成日期
+            calculateEstimatedDate(remainingAmount, avgNetIncome, mode) {
+                if (avgNetIncome <= 0) {
+                    return null; // 净收入为负或零，无法计算预计完成日期
+                }
+                
+                const daysNeeded = Math.ceil(remainingAmount / avgNetIncome);
+                const estimatedDate = new Date();
+                estimatedDate.setDate(estimatedDate.getDate() + daysNeeded);
+                
+                return estimatedDate;
+            },
+
+            // 计算与目标日期的差距
+            calculateDaysDifference(estimatedDate, targetDate) {
+                if (!estimatedDate || !targetDate) return 0;
+                
+                const diffTime = estimatedDate.getTime() - targetDate.getTime();
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            },
+
+            // 计算进度百分比
+            calculateProgressPercentage(totalAmount, totalNetIncome, mode) {
+                let percentage = (totalNetIncome / totalAmount) * 100;
+                
+                // 对于储蓄模式，如果已经超过目标，进度为100%
+                if (mode === 'saving' && totalNetIncome > totalAmount) {
+                    percentage = 100;
+                }
+                
+                return Math.min(Math.max(percentage, 0), 100);
+            }
+        };
+
+        // UI管理模块 - 负责更新界面
+        const UIManager = {
+            // 更新应用标题和模式
+            updateAppMode(mode) {
+                const title = document.getElementById('app-title');
+                const subtitle = document.getElementById('app-subtitle');
+                
+                if (mode === 'debt') {
+                    title.textContent = '个人债务清偿追踪工具';
+                    subtitle.textContent = '记录每日收入，动态追踪偿清债务进度';
+                    document.getElementById('debt-mode-btn').classList.add('active');
+                    document.getElementById('saving-mode-btn').classList.remove('active');
+                } else {
+                    title.textContent = '个人储蓄目标追踪工具';
+                    subtitle.textContent = '记录每日收入，动态追踪达成储蓄目标进度';
+                    document.getElementById('debt-mode-btn').classList.remove('active');
+                    document.getElementById('saving-mode-btn').classList.add('active');
+                }
+                
+                // 更新进度标签
+                const progressLabel = document.getElementById('progress-label');
+                if (mode === 'debt') {
+                    progressLabel.innerHTML = `已偿还: <span id="progress-amount">¥0</span> / <span id="total-amount">¥0</span>`;
+                } else {
+                    progressLabel.innerHTML = `已储蓄: <span id="progress-amount">¥0</span> / <span id="total-amount">¥0</span>`;
+                }
+            },
+
+            // 更新进度条
+            updateProgressBar(percentage) {
+                const progressBar = document.getElementById('progress-bar');
+                const progressPercent = document.getElementById('progress-percent');
+                
+                progressBar.style.width = `${percentage}%`;
+                progressBar.textContent = `${percentage.toFixed(1)}%`;
+                progressPercent.textContent = `${percentage.toFixed(1)}%`;
+            },
+
+            // 更新关键统计信息
+            updateStats(settings, records, mode) {
+                if (!settings) return;
+                
+                const totalNetIncome = Calculator.calculateTotalNetIncome(records, settings);
+                const remainingAmount = Calculator.calculateRemainingAmount(settings.totalAmount, totalNetIncome, mode);
+                const avgNetIncome = Calculator.calculateAverageNetIncome(records, settings, 7);
+                const estimatedDate = Calculator.calculateEstimatedDate(remainingAmount, avgNetIncome, mode);
+                const targetDate = new Date(settings.targetDate);
+                const daysDifference = Calculator.calculateDaysDifference(estimatedDate, targetDate);
+                const progressPercentage = Calculator.calculateProgressPercentage(settings.totalAmount, totalNetIncome, mode);
+                
+                // 更新进度条
+                this.updateProgressBar(progressPercentage);
+                
+                // 更新统计数字
+                document.getElementById('remaining-amount').textContent = `¥${remainingAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById('progress-amount').textContent = `¥${totalNetIncome.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById('total-amount').textContent = `¥${settings.totalAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById('avg-net-income').textContent = `¥${avgNetIncome.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                
+                // 更新预计完成日期
+                if (estimatedDate) {
+                    document.getElementById('estimated-date').textContent = estimatedDate.toLocaleDateString('zh-CN');
+                } else {
+                    document.getElementById('estimated-date').textContent = '无法计算';
+                }
+                
+                // 更新提前/延后天数
+                const daysDifferenceElement = document.getElementById('days-difference');
+                daysDifferenceElement.textContent = `${daysDifference > 0 ? '+' : ''}${daysDifference}天`;
+                
+                if (daysDifference < 0) {
+                    daysDifferenceElement.className = 'stat-value positive';
+                } else if (daysDifference > 0) {
+                    daysDifferenceElement.className = 'stat-value negative';
+                } else {
+                    daysDifferenceElement.className = 'stat-value';
+                }
+            },
+
+            // 更新历史记录视图
+            updateHistoryView(records, period) {
+                const historyList = document.getElementById('history-list');
+                historyList.innerHTML = '';
+                
+                if (!records || Object.keys(records).length === 0) {
+                    const emptyItem = document.createElement('div');
+                    emptyItem.className = 'history-item empty-history';
+                    emptyItem.innerHTML = '<div class="history-description" style="text-align: center; width: 100%;">暂无记录，请开始记录您的财务数据</div>';
+                    historyList.appendChild(emptyItem);
+                    return;
+                }
+                
+                // 根据选择的周期显示记录
+                if (period === 'day') {
+                    this.showDayView(records, historyList);
+                } else if (period === 'week') {
+                    this.showWeekView(records, historyList);
+                } else if (period === 'month') {
+                    this.showMonthView(records, historyList);
+                }
+            },
+
+            // 显示日视图
+            showDayView(records, container) {
+                // 按日期排序（最近日期在前）
+                const sortedDates = Object.keys(records).sort((a, b) => new Date(b) - new Date(a));
+                
+                sortedDates.forEach(dateStr => {
+                    const record = records[dateStr];
+                    const date = new Date(dateStr);
+                    const dateFormatted = date.toLocaleDateString('zh-CN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                    
+                    // 创建日期标题
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'history-item';
+                    dateHeader.style.fontWeight = 'bold';
+                    dateHeader.style.backgroundColor = '#f8f9fa';
+                    dateHeader.innerHTML = `<div class="history-date">${dateFormatted}</div>`;
+                    container.appendChild(dateHeader);
+                    
+                    // 显示每日收入
+                    if (record.dailyIncome) {
+                        const incomeItem = this.createHistoryItem('每日收入', `+¥${record.dailyIncome.toFixed(2)}`, 'income');
+                        container.appendChild(incomeItem);
+                    }
+                    
+                    // 显示额外收入
+                    if (record.extraIncomes) {
+                        record.extraIncomes.forEach(extra => {
+                            const desc = extra.description || '额外收入';
+                            const incomeItem = this.createHistoryItem(desc, `+¥${extra.amount.toFixed(2)}`, 'income');
+                            container.appendChild(incomeItem);
+                        });
+                    }
+                    
+                    // 显示额外支出
+                    if (record.extraExpenses) {
+                        record.extraExpenses.forEach(extra => {
+                            const desc = extra.description || '额外支出';
+                            const expenseItem = this.createHistoryItem(desc, `-¥${extra.amount.toFixed(2)}`, 'expense');
+                            container.appendChild(expenseItem);
+                        });
+                    }
+                });
+            },
+
+            // 显示周视图
+            showWeekView(records, container) {
+                // 按周分组逻辑
+                const weeklyData = {};
+                
+                Object.keys(records).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const year = date.getFullYear();
+                    const weekNumber = this.getWeekNumber(date);
+                    const weekKey = `${year}-W${weekNumber}`;
+                    
+                    if (!weeklyData[weekKey]) {
+                        weeklyData[weekKey] = {
+                            startDate: new Date(date),
+                            endDate: new Date(date),
+                            totalDailyIncome: 0,
+                            totalExtraIncome: 0,
+                            totalExtraExpense: 0
+                        };
+                    }
+                    
+                    const week = weeklyData[weekKey];
+                    const record = records[dateStr];
+                    
+                    // 更新周的开始和结束日期
+                    if (date < week.startDate) week.startDate = new Date(date);
+                    if (date > week.endDate) week.endDate = new Date(date);
+                    
+                    // 累加数据
+                    if (record.dailyIncome) week.totalDailyIncome += record.dailyIncome;
+                    if (record.extraIncomes) {
+                        record.extraIncomes.forEach(income => {
+                            week.totalExtraIncome += income.amount;
+                        });
+                    }
+                    if (record.extraExpenses) {
+                        record.extraExpenses.forEach(expense => {
+                            week.totalExtraExpense += expense.amount;
+                        });
+                    }
+                });
+                
+                // 显示每周汇总
+                Object.keys(weeklyData).sort().reverse().forEach(weekKey => {
+                    const week = weeklyData[weekKey];
+                    const weekRange = `${week.startDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })} - ${week.endDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}`;
+                    
+                    const weekHeader = document.createElement('div');
+                    weekHeader.className = 'history-item';
+                    weekHeader.style.fontWeight = 'bold';
+                    weekHeader.style.backgroundColor = '#f8f9fa';
+                    weekHeader.innerHTML = `<div class="history-date">${weekKey}</div><div class="history-description">${weekRange}</div>`;
+                    container.appendChild(weekHeader);
+                    
+                    // 显示每周汇总数据
+                    const totalIncome = week.totalDailyIncome + week.totalExtraIncome;
+                    const netIncome = totalIncome - week.totalExtraExpense;
+                    
+                    const dailyIncomeItem = this.createHistoryItem('每日收入总计', `+¥${week.totalDailyIncome.toFixed(2)}`, 'income');
+                    container.appendChild(dailyIncomeItem);
+                    
+                    const extraIncomeItem = this.createHistoryItem('额外收入总计', `+¥${week.totalExtraIncome.toFixed(2)}`, 'income');
+                    container.appendChild(extraIncomeItem);
+                    
+                    const extraExpenseItem = this.createHistoryItem('额外支出总计', `-¥${week.totalExtraExpense.toFixed(2)}`, 'expense');
+                    container.appendChild(extraExpenseItem);
+                    
+                    const netIncomeItem = this.createHistoryItem('周净收入', `${netIncome >= 0 ? '+' : ''}¥${netIncome.toFixed(2)}`, netIncome >= 0 ? 'income' : 'expense');
+                    container.appendChild(netIncomeItem);
+                });
+            },
+
+            // 显示月视图
+            showMonthView(records, container) {
+                // 按月分组逻辑
+                const monthlyData = {};
+                
+                Object.keys(records).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const monthKey = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+                    
+                    if (!monthlyData[monthKey]) {
+                        monthlyData[monthKey] = {
+                            totalDailyIncome: 0,
+                            totalExtraIncome: 0,
+                            totalExtraExpense: 0
+                        };
+                    }
+                    
+                    const month = monthlyData[monthKey];
+                    const record = records[dateStr];
+                    
+                    // 累加数据
+                    if (record.dailyIncome) month.totalDailyIncome += record.dailyIncome;
+                    if (record.extraIncomes) {
+                        record.extraIncomes.forEach(income => {
+                            month.totalExtraIncome += income.amount;
+                        });
+                    }
+                    if (record.extraExpenses) {
+                        record.extraExpenses.forEach(expense => {
+                            month.totalExtraExpense += expense.amount;
+                        });
+                    }
+                });
+                
+                // 显示每月汇总
+                Object.keys(monthlyData).sort().reverse().forEach(monthKey => {
+                    const month = monthlyData[monthKey];
+                    
+                    const monthHeader = document.createElement('div');
+                    monthHeader.className = 'history-item';
+                    monthHeader.style.fontWeight = 'bold';
+                    monthHeader.style.backgroundColor = '#f8f9fa';
+                    monthHeader.innerHTML = `<div class="history-date">${monthKey}</div>`;
+                    container.appendChild(monthHeader);
+                    
+                    // 显示每月汇总数据
+                    const totalIncome = month.totalDailyIncome + month.totalExtraIncome;
+                    const netIncome = totalIncome - month.totalExtraExpense;
+                    
+                    const dailyIncomeItem = this.createHistoryItem('每日收入总计', `+¥${month.totalDailyIncome.toFixed(2)}`, 'income');
+                    container.appendChild(dailyIncomeItem);
+                    
+                    const extraIncomeItem = this.createHistoryItem('额外收入总计', `+¥${month.totalExtraIncome.toFixed(2)}`, 'income');
+                    container.appendChild(extraIncomeItem);
+                    
+                    const extraExpenseItem = this.createHistoryItem('额外支出总计', `-¥${month.totalExtraExpense.toFixed(2)}`, 'expense');
+                    container.appendChild(extraExpenseItem);
+                    
+                    const netIncomeItem = this.createHistoryItem('月净收入', `${netIncome >= 0 ? '+' : ''}¥${netIncome.toFixed(2)}`, netIncome >= 0 ? 'income' : 'expense');
+                    container.appendChild(netIncomeItem);
+                });
+            },
+
+            // 创建历史记录项
+            createHistoryItem(description, amount, type) {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-description">${description}</div>
+                    <div class="history-amount ${type}">${amount}</div>
+                `;
+                return item;
+            },
+
+            // 获取一年中的第几周
+            getWeekNumber(date) {
+                const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+                return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            },
+
+            // 显示/隐藏设置警告
+            toggleSetupWarning(show) {
+                document.getElementById('setup-alert').style.display = show ? 'block' : 'none';
+            },
+
+            // 显示/隐藏记录警告
+            toggleRecordWarning(show) {
+                document.getElementById('record-alert').style.display = show ? 'block' : 'none';
+            },
+
+            // 填充设置表单
+            populateSettingsForm(settings) {
+                if (!settings) return;
+                
+                document.getElementById('total-amount-input').value = settings.totalAmount || '';
+                document.getElementById('target-date').value = settings.targetDate || '';
+                document.getElementById('monthly-expense').value = settings.monthlyExpense || '';
+                document.getElementById('daily-income').value = settings.dailyIncome || '';
+            }
+        };
+
+        // 主应用模块
+        const FinanceTrackerApp = {
+            currentMode: 'debt',
+            settings: null,
+            records: {},
+            pendingRecord: null, // 用于处理重复记录
+
+            // 初始化应用
+            init() {
+                // 从LocalStorage加载数据
+                this.loadData();
+                
+                // 设置事件监听器
+                this.setupEventListeners();
+                
+                // 初始化UI
+                this.updateUI();
+            },
+
+            // 从LocalStorage加载数据
+            loadData() {
+                this.currentMode = DataManager.getMode();
+                this.settings = DataManager.getSettings();
+                this.records = DataManager.getRecords();
+            },
+
+            // 保存数据到LocalStorage
+            saveData() {
+                DataManager.saveMode(this.currentMode);
+                if (this.settings) {
+                    DataManager.saveSettings(this.settings);
+                }
+                DataManager.saveRecords(this.records);
+            },
+
+            // 设置事件监听器
+            setupEventListeners() {
+                // 模式切换按钮
+                document.getElementById('debt-mode-btn').addEventListener('click', () => {
+                    this.switchMode('debt');
+                });
+                
+                document.getElementById('saving-mode-btn').addEventListener('click', () => {
+                    this.switchMode('saving');
+                });
+
+                // 设置表单提交
+                document.getElementById('setup-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveSettings();
+                });
+
+                // 记录按钮
+                document.getElementById('record-today-income').addEventListener('click', () => {
+                    this.recordTodayIncome();
+                });
+                
+                document.getElementById('record-extra-income').addEventListener('click', () => {
+                    this.recordExtraIncome();
+                });
+                
+                document.getElementById('record-extra-expense').addEventListener('click', () => {
+                    this.recordExtraExpense();
+                });
+
+                // 历史记录筛选器
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const period = btn.getAttribute('data-period');
+                        UIManager.updateHistoryView(this.records, period);
+                    });
+                });
+
+                // 清除数据按钮
+                document.getElementById('clear-data-btn').addEventListener('click', () => {
+                    this.showClearDataModal();
+                });
+
+                // 模态框事件
+                this.setupModalEvents();
+            },
+
+            // 设置模态框事件
+            setupModalEvents() {
+                const clearModal = document.getElementById('clear-data-modal');
+                const overwriteModal = document.getElementById('overwrite-modal');
+                
+                // 清除数据模态框
+                document.querySelectorAll('.close-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        clearModal.style.display = 'none';
+                        overwriteModal.style.display = 'none';
+                    });
+                });
+                
+                document.getElementById('cancel-clear-btn').addEventListener('click', () => {
+                    clearModal.style.display = 'none';
+                });
+                
+                document.getElementById('confirm-clear-btn').addEventListener('click', () => {
+                    this.clearAllData();
+                    clearModal.style.display = 'none';
+                });
+                
+                // 覆盖记录模态框
+                document.getElementById('cancel-overwrite-btn').addEventListener('click', () => {
+                    overwriteModal.style.display = 'none';
+                    this.pendingRecord = null;
+                });
+                
+                document.getElementById('confirm-overwrite-btn').addEventListener('click', () => {
+                    if (this.pendingRecord) {
+                        this.addRecord(this.pendingRecord);
+                        this.pendingRecord = null;
+                    }
+                    overwriteModal.style.display = 'none';
+                });
+                
+                // 点击模态框外部关闭
+                window.addEventListener('click', (e) => {
+                    if (e.target === clearModal) {
+                        clearModal.style.display = 'none';
+                    }
+                    if (e.target === overwriteModal) {
+                        overwriteModal.style.display = 'none';
+                        this.pendingRecord = null;
+                    }
+                });
+            },
+
+            // 切换模式
+            switchMode(mode) {
+                this.currentMode = mode;
+                DataManager.saveMode(mode);
+                UIManager.updateAppMode(mode);
+                this.updateUI();
+            },
+
+            // 保存设置
+            saveSettings() {
+                const totalAmount = parseFloat(document.getElementById('total-amount-input').value);
+                const targetDate = document.getElementById('target-date').value;
+                const monthlyExpense = parseFloat(document.getElementById('monthly-expense').value);
+                const dailyIncome = parseFloat(document.getElementById('daily-income').value);
+                
+                if (!totalAmount || !targetDate || isNaN(monthlyExpense) || isNaN(dailyIncome)) {
+                    alert('请填写所有设置字段');
+                    return;
+                }
+                
+                this.settings = {
+                    totalAmount,
+                    targetDate,
+                    monthlyExpense,
+                    dailyIncome
+                };
+                
+                this.saveData();
+                UIManager.toggleSetupWarning(false);
+                UIManager.toggleRecordWarning(false);
+                this.updateUI();
+                
+                // 显示成功消息
+                alert('设置已保存！现在可以开始记录您的财务数据。');
+            },
+
+            // 记录今日收入
+            recordTodayIncome() {
+                if (!this.settings) {
+                    UIManager.toggleRecordWarning(true);
+                    return;
+                }
+                
+                const amountInput = document.getElementById('today-income');
+                const amount = parseFloat(amountInput.value);
+                
+                if (isNaN(amount) || amount <= 0) {
+                    alert('请输入有效的收入金额');
+                    return;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                // 检查今天是否已经有记录
+                if (this.records[today] && this.records[today].dailyIncome !== undefined) {
+                    // 显示覆盖确认模态框
+                    this.pendingRecord = {
+                        date: today,
+                        type: 'dailyIncome',
+                        amount: amount
+                    };
+                    
+                    document.getElementById('overwrite-message').textContent = 
+                        `今天（${today}）已经有一条收入记录（¥${this.records[today].dailyIncome}），是否要覆盖它？`;
+                    document.getElementById('overwrite-modal').style.display = 'flex';
+                } else {
+                    this.addRecord({
+                        date: today,
+                        type: 'dailyIncome',
+                        amount: amount
+                    });
+                }
+                
+                amountInput.value = '';
+            },
+
+            // 记录额外收入
+            recordExtraIncome() {
+                if (!this.settings) {
+                    UIManager.toggleRecordWarning(true);
+                    return;
+                }
+                
+                const amount = parseFloat(document.getElementById('extra-income-amount').value);
+                const description = document.getElementById('extra-income-description').value.trim();
+                
+                if (isNaN(amount) || amount <= 0) {
+                    alert('请输入有效的收入金额');
+                    return;
+                }
+                
+                if (!description) {
+                    alert('请输入收入描述');
+                    return;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                this.addRecord({
+                    date: today,
+                    type: 'extraIncome',
+                    amount: amount,
+                    description: description
+                });
+                
+                document.getElementById('extra-income-amount').value = '';
+                document.getElementById('extra-income-description').value = '';
+            },
+
+            // 记录额外支出
+            recordExtraExpense() {
+                if (!this.settings) {
+                    UIManager.toggleRecordWarning(true);
+                    return;
+                }
+                
+                const amount = parseFloat(document.getElementById('extra-expense-amount').value);
+                const description = document.getElementById('extra-expense-description').value.trim();
+                
+                if (isNaN(amount) || amount <= 0) {
+                    alert('请输入有效的支出金额');
+                    return;
+                }
+                
+                if (!description) {
+                    alert('请输入支出描述');
+                    return;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                this.addRecord({
+                    date: today,
+                    type: 'extraExpense',
+                    amount: amount,
+                    description: description
+                });
+                
+                document.getElementById('extra-expense-amount').value = '';
+                document.getElementById('extra-expense-description').value = '';
+            },
+
+            // 添加记录到数据中
+            addRecord(record) {
+                const date = record.date;
+                
+                if (!this.records[date]) {
+                    this.records[date] = {};
+                }
+                
+                if (record.type === 'dailyIncome') {
+                    this.records[date].dailyIncome = record.amount;
+                } else if (record.type === 'extraIncome') {
+                    if (!this.records[date].extraIncomes) {
+                        this.records[date].extraIncomes = [];
+                    }
+                    this.records[date].extraIncomes.push({
+                        amount: record.amount,
+                        description: record.description
+                    });
+                } else if (record.type === 'extraExpense') {
+                    if (!this.records[date].extraExpenses) {
+                        this.records[date].extraExpenses = [];
+                    }
+                    this.records[date].extraExpenses.push({
+                        amount: record.amount,
+                        description: record.description
+                    });
+                }
+                
+                this.saveData();
+                this.updateUI();
+                
+                // 显示成功消息
+                let message = '';
+                if (record.type === 'dailyIncome') {
+                    message = `今日收入 ¥${record.amount} 已记录`;
+                } else if (record.type === 'extraIncome') {
+                    message = `额外收入 "${record.description}" ¥${record.amount} 已记录`;
+                } else {
+                    message = `额外支出 "${record.description}" ¥${record.amount} 已记录`;
+                }
+                
+                // 临时显示成功消息
+                this.showTemporaryMessage(message, 'success');
+            },
+
+            // 显示临时消息
+            showTemporaryMessage(message, type) {
+                const alertDiv = document.createElement('div');
+                alertDiv.textContent = message;
+                alertDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    background-color: ${type === 'success' ? '#4caf50' : '#f44336'};
+                    color: white;
+                    border-radius: 5px;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    font-weight: 500;
+                `;
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 3000);
+            },
+
+            // 更新UI
+            updateUI() {
+                // 更新模式UI
+                UIManager.updateAppMode(this.currentMode);
+                
+                // 如果有设置，填充表单
+                if (this.settings) {
+                    UIManager.populateSettingsForm(this.settings);
+                    UIManager.toggleSetupWarning(false);
+                    UIManager.toggleRecordWarning(false);
+                } else {
+                    UIManager.toggleSetupWarning(true);
+                }
+                
+                // 更新统计信息
+                if (this.settings) {
+                    UIManager.updateStats(this.settings, this.records, this.currentMode);
+                }
+                
+                // 更新历史记录（默认日视图）
+                UIManager.updateHistoryView(this.records, 'day');
+                
+                // 更新今日日期
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('today-income').placeholder = `今日收入 (${today})`;
+            },
+
+            // 显示清除数据确认模态框
+            showClearDataModal() {
+                document.getElementById('clear-data-modal').style.display = 'flex';
+            },
+
+            // 清除所有数据
+            clearAllData() {
+                DataManager.clearAllData();
+                this.settings = null;
+                this.records = {};
+                this.currentMode = 'debt';
+                
+                // 重置表单
+                document.getElementById('setup-form').reset();
+                
+                this.updateUI();
+                
+                // 显示清除成功消息
+                this.showTemporaryMessage('所有数据已清除', 'success');
+            }
+        };
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            FinanceTrackerApp.init();
+            
+            // 设置目标日期默认值为一个月后
+            const targetDateInput = document.getElementById('target-date');
+            const oneMonthLater = new Date();
+            oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+            targetDateInput.min = new Date().toISOString().split('T')[0];
+            targetDateInput.value = oneMonthLater.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>
