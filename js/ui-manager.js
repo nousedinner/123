@@ -93,7 +93,7 @@
                                     <label for="target-date">预期完成日期</label>
                                     <input type="text" id="target-date" placeholder="YYYY-MM-DD 或直接输入20261215" pattern="\\d{4}-\\d{2}-\\d{2}" required>
                                     <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                                        支持格式：YYYY-MM-DD 或直接连续输入数字（如20261215会自动转为2026-12-15）
+                                        支持格式：YYYY-MM-DD 或直接连续输入数字（如20261215会自动转为2026-12-15），输入时会自动修正月份/日期至合理范围
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -186,13 +186,90 @@
             // 缓存DOM元素引用
             this.cacheElements();
             
-            // 设置目标日期默认值为一个月后
+            // 设置目标日期默认值为一个月后，并自动格式化用户输入（支持连续数字如20261215）
             const targetDateInput = document.getElementById('target-date');
             if (targetDateInput) {
                 const oneMonthLater = new Date();
                 oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
                 const formattedDate = oneMonthLater.toISOString().split('T')[0];
                 targetDateInput.value = formattedDate;
+                
+                // 保存上一个有效的完整日期（用于发生无效输入时回退）
+                let previousValid = formattedDate;
+                
+                // 辅助：将任意输入标准化为 YYYY-MM-DD 的显示形式（仅格式化，不校验合法性）
+                const normalizeAndFormat = (val) => {
+                    if (!val) return '';
+                    // 只保留数字
+                    let digits = String(val).replace(/[^0-9]/g, '');
+                    if (digits.length > 8) digits = digits.slice(0, 8);
+                    if (digits.length <= 4) return digits;
+                    if (digits.length <= 6) return digits.slice(0, 4) + '-' + digits.slice(4);
+                    return digits.slice(0, 4) + '-' + digits.slice(4, 6) + '-' + digits.slice(6, 8);
+                };
+                
+                // 在输入时动态格式化（支持用户连续输入8位数字），并在形成完整日期时校验其存在性
+                targetDateInput.addEventListener('input', () => {
+                    const raw = targetDateInput.value;
+                    const formatted = normalizeAndFormat(raw);
+                    // 仅在需要时更新以避免破坏用户编辑体验
+                    if (formatted !== raw) {
+                        targetDateInput.value = formatted;
+                        // 将光标移动到末尾，简单可靠
+                        try {
+                            targetDateInput.setSelectionRange(targetDateInput.value.length, targetDateInput.value.length);
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                    
+                    // 如果是完整格式（YYYY-MM-DD），校验日期是否真实存在；若无效则回退并提示
+                    if (formatted.length === 10) {
+                        if (this.isValidDate && this.isValidDate(formatted)) {
+                            previousValid = formatted;
+                        } else {
+                            // 回退到上一个有效日期并提示用户
+                            targetDateInput.value = previousValid || '';
+                            try {
+                                targetDateInput.setSelectionRange(targetDateInput.value.length, targetDateInput.value.length);
+                            } catch (e) {
+                                // ignore
+                            }
+                            if (this.showMessage) {
+                                this.showMessage('请输入存在的有效日期，格式：YYYY-MM-DD', 'error');
+                            }
+                        }
+                    }
+                });
+                
+                // 失焦时确保如果用户粘贴了8位纯数字也会被格式化并校验有效性
+                targetDateInput.addEventListener('blur', () => {
+                    const val = targetDateInput.value.trim();
+                    if (/^\d{8}$/.test(val)) {
+                        const formatted = val.slice(0, 4) + '-' + val.slice(4, 6) + '-' + val.slice(6, 8);
+                        if (this.isValidDate && this.isValidDate(formatted)) {
+                            targetDateInput.value = formatted;
+                            previousValid = formatted;
+                        } else {
+                            // 回退并提示
+                            targetDateInput.value = previousValid || '';
+                            if (this.showMessage) this.showMessage('请输入存在的有效日期，格式：YYYY-MM-DD', 'error');
+                        }
+                    } else {
+                        const formatted = normalizeAndFormat(val);
+                        if (formatted.length === 10) {
+                            if (this.isValidDate && this.isValidDate(formatted)) {
+                                targetDateInput.value = formatted;
+                                previousValid = formatted;
+                            } else {
+                                targetDateInput.value = previousValid || '';
+                                if (this.showMessage) this.showMessage('请输入存在的有效日期，格式：YYYY-MM-DD', 'error');
+                            }
+                        } else {
+                            targetDateInput.value = formatted;
+                        }
+                    }
+                });
             }
             
             console.log('应用结构创建完成');
